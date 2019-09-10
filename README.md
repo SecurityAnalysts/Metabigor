@@ -17,9 +17,9 @@ Metabigor allows you to do query from command line to awesome Search Engines (li
 Metabigor gonna use your cookie or not to simulate search from browser and automatic optimize the query to get more result.
 
 ## Main feature
-- Regular search like you do from Shodan, Censys, Fofa but on commandline.
+- Regular search like you do from Shodan, Censys, Fofa but from command line.
 - Discovery IP range of target or ASN.
-- Get CVE or exploit about app of software.
+- Get CVE or exploit info for specific application.
 - Simple github recon to get repo, user and org.
 
 
