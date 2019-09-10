@@ -1,3 +1,5 @@
-lxml==4.2.4
-beautifulsoup4==4.6.3
 requests==2.22.0
+lxml==4.3.4
+beautifulsoup4==4.6.3
+PyGithub==1.43.8
+tldextract==2.2.0

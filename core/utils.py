@@ -4,9 +4,12 @@ import json
 import base64 
 import random
 import time
+import socket
+import ipaddress
 import urllib.parse
 from configparser import ConfigParser, ExtendedInterpolation
 from bs4 import BeautifulSoup
+import tldextract
 
 # Console colors
 W = '\033[1;0m'   # white
@@ -34,13 +37,20 @@ full_country_code = ['AF', 'AL', 'DZ', 'AS', 'AD', 'AO', 'AI', 'AQ', 'AG', 'AR',
  Beatiful print
 '''
 
-def print_debug(options, text):
-    if options['debug']:
-        print(debug, text)
+
+def print_block(text, tag='RUN'):
+    print(f'{GR}' + '-'*40)
+    print(f'{GR}[{B}{tag}{GR}] {G}{text}')
+    print(f'{GR}' + '-'*40)
 
 
 def print_banner(text):
-    print('{1}--~~~[ {2}{0}{1} ]~~~--'.format(text, G, C))
+    print_block(text, tag='RUN')
+
+
+def print_debug(options, text):
+    if options['debug']:
+        print(debug, text)
 
 
 def print_info(text):
@@ -61,8 +71,15 @@ def print_bad(text):
 
 def check_output(output):
     abs_path = os.path.abspath(output)
-    print('{1}--==[ Check the output: {2}{0}'.format(abs_path, G, P))
+    if not_empty_file(output):
+        print('{1}--==[ Check the output: {2}{0}'.format(abs_path, G, P))
 
+
+def not_empty_file(filepath):
+    if not filepath:
+        return False
+    fpath = os.path.normpath(filepath)
+    return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
 
 '''
  String utils
@@ -73,10 +90,51 @@ def random_sleep(min=2, max=5):
     time.sleep(random.randint(min, max))
 
 
+def resolve_input(string_in):
+    if valid_ip(string_in):
+        return string_in
+    else:
+        try:
+            ip = socket.gethostbyname(get_domain(string_in))
+            return ip
+        except:
+            return False
+    return False
+
+
+# just get main domain
+def get_domain(string_in):
+    parsed = urllib.parse.urlparse(string_in)
+    domain = parsed.netloc if parsed.netloc else parsed.path
+    return domain
+
+
+# check if string is IP or not
+def valid_ip(string_in):
+    try:
+        ipaddress.ip_interface(str(string_in).strip())
+        return True
+    except:
+        return False
+
+
 # just beatiful soup the html
 def soup(html):
     soup = BeautifulSoup(html, "lxml")
     return soup
+
+
+def get_tld(string_in):
+    try:
+        result = tldextract.extract(string_in)
+        return result.domain
+    except:
+        return string_in
+
+
+def get_asn_num(string_in):
+    return str(string_in).lower().replace('as', '')
+
 
 def get_json(text):
     return json.loads(text)
@@ -84,6 +142,30 @@ def get_json(text):
 
 def get_query(url):
     return urllib.parse.urlparse(url).query
+
+
+def get_path(url):
+    return urllib.parse.urlparse(url).path
+
+
+def get_parent(path):
+    return os.path.dirname(path)
+
+
+def get_filename(path):
+    return os.path.basename(path)
+
+
+def join_path(parent, child):
+    parent = os.path.normpath(parent)
+    child = os.path.normpath(child)
+    return os.path.join(parent, child.strip('/'))
+
+
+def strip_slash(string_in):
+    if '/' in string_in:
+        string_in = string_in.replace('/', '_')
+    return string_in
 
 
 # get country code from query
@@ -118,6 +200,18 @@ def get_city_name(query, source='shodan'):
 
     return city_code
 
+
+def get_asn(string_in):
+    if not string_in:
+        return False
+    m = re.search(r'AS[0-9]+', string_in.upper())
+    if m:
+        asn_num = m.group()
+        return asn_num
+    else:
+        return False
+
+
 # get cve number
 def get_cve(source):
     m = re.search('CVE-\d{4}-\d{4,7}', source)
@@ -126,6 +220,30 @@ def get_cve(source):
         return cve
     else:
         return 'N/A'
+
+
+def grep_the_IP(data, verbose=False):
+    cidr_regex = "((\d){1,3}\.){3}(\d){1,3}(\/(\d){1,3})?"
+    ips = []
+    p = re.compile(cidr_regex)
+    for m in p.finditer(data):
+        ips.append(m.group())
+        if verbose:
+            print(m.group())
+    return ips
+
+
+# strip out the private IP
+def strip_private_ip(data):
+    new_data = []
+    for item in data:
+        try:
+            if not ipaddress.ip_address(item).is_private:
+                new_data.append(item)
+        except:
+            new_data.append(item)
+
+    return new_data
 
 
 def url_encode(string_in):
@@ -144,6 +262,17 @@ def just_b64_decode(string_in):
     return base64.b64decode(string_in.encode()).decode()
 
 
+def is_json(string_in):
+    try:
+        json_object = json.loads(string_in)
+    except:
+        try:
+            if type(literal_eval(string_in)) == dict:
+                return True
+        except:
+            return False
+    return True
+
 '''
  File utils
 '''
@@ -161,7 +290,9 @@ def get_cred(options, source):
         cred = config.get('Credentials', 'shodan')
     if 'censys' in source:
         cred = config.get('Credentials', 'censys')
-    
+    if 'github' in source:
+        cred = config.get('Credentials', 'github')
+
     print_debug(options, cred)
     username = cred.split(':')[0].strip()
     password = cred.split(':')[1].strip()
@@ -187,16 +318,25 @@ def set_session(options, cookies, source):
         config.write(configfile)
 
 
-def make_directory(directory):
+def make_directory(directory, verbose=False):
+    directory = os.path.normpath(directory)
     if not os.path.exists(directory):
-        print_good('Make new directory: {0}'.format(directory))
+        if verbose:
+            print_good('Make new directory: {0}'.format(directory))
         os.makedirs(directory)
 
 
-def just_read(filename):
+def just_read(filename, get_json=False, get_list=False):
+    if not filename:
+        return False
+    filename = os.path.normpath(filename)
     if os.path.isfile(filename):
         with open(filename, 'r') as f:
             data = f.read()
+        if get_json and is_json(data):
+            return json.loads(data)
+        elif get_list:
+            return data.splitlines()
         return data
 
     return False
@@ -218,14 +358,15 @@ def just_write(filename, data, is_json=False, verbose=False):
 
 
 # unique and strip the blank line
-def just_cleanup(filename):
-    check_output(filename)
+def just_cleanup(filename, verbose=True):
+    if verbose:
+        check_output(filename)
     if os.path.isfile(filename):
         with open(filename, 'r') as f:
             raw = f.read().splitlines()
 
-        data = [x for x in raw if str(x) != '']
-
+        data = [x for x in raw if str(x).strip() != '']
+        data.sort()
         with open(filename, 'w+') as o:
             for item in set(data):
                 o.write(item + "\n")

@@ -10,29 +10,18 @@
 </p>
 
 ## What is Metabigor?
-Metabigor allows you to do query from command line to awesome Search Engines (like Shodan, Censys, Fofa, ZoomEye, etc) without any API key.
-
-## But Why Metabigor?\*
-* Don't use your API key so you don't have to worry about litmit of API quotation.
-
-* Do query from command line without Premium account.
-
-* Get more result without Premium account. 
-
-* But I have an Premium account why do I need this shit? 
-    * Again Metabigor will not lose your API quotation.
-    * Your query will optimized so you gonna get more result than using it by hand or API key.
-    * Never get duplicate result.
+Metabigor allows you to do query from command line to awesome Search Engines (like Shodan, Censys, Fofa, ZoomEye and many others) without any API key.
 
 
 ## How it works?
 Metabigor gonna use your cookie or not to simulate search from browser and automatic optimize the query to get more result.
 
-## Search Engine currently supported
-- [x] Shodan.
-- [x] Fofa Pro.
-- [x] ZoomEye.
-- [x] Censys.
+## Main feature
+- Regular search like you do from Shodan, Censys, Fofa but on commandline.
+- Discovery IP range of target or ASN.
+- Get CVE or exploit about app of software.
+- Simple github recon to get repo, user and org.
+
 
 ## Installation
 ```
@@ -56,7 +45,7 @@ pip3 install -r requirements.txt
 Check out the [Advanced Usage](https://github.com/j3ssie/Metabigor/wiki/Advanced-Usage) to explore some awesome options
 
 ### Example commands
-__Note__: Fill your credentials or your sessions on `config.conf` if you want to get more results.
+__Note__: Fill your credentials or your sessions on `~/.metabigor/config.conf` if you want to get more results.
 
 ```
 ./metabigor.py -s fofa -q 'title="Dashboard - Confluence" && body=".org"' 
@@ -70,17 +59,8 @@ __Note__: Fill your credentials or your sessions on `config.conf` if you want to
 ./metabigor.py -s shodan -q 'port:"3389" os:"Windows"' --debug
 ```
 
-### Options
+### More Options
 ```
-[*] Setup session
-===============
-Do command below or direct modify config.conf file
-./metabigor.py -s shodan --cookies=<content of polito cookie>
-./metabigor.py -s censys --cookies=<content of auth_tkt cookie>
-./metabigor.py -s fofa --cookies=<content of _fofapro_ars_session cookie>
-./metabigor.py -s zoomeye --cookies=<content of Cube-Authorization header>
-
-
 [*] Basic Usage
 ===============
 ./metabigor.py -s <source> -q '<your_query>' [options]
@@ -89,11 +69,9 @@ Do command below or direct modify config.conf file
 
 [*] More Options
 ===============
-  -d OUTDIR, --outdir OUTDIR
-                        Directory output
   -o OUTPUT, --output OUTPUT
                         Output file name
-  --raw RAW             Directory to store raw query
+  --raw RAW             Directory to store raw content
   --proxy PROXY         Proxy for doing request to search engine e.g:
                         http://127.0.0.1:8080
   -b                    Auto brute force the country code
@@ -108,22 +86,28 @@ Do command below or direct modify config.conf file
 ===============
 ./metabigor.py -s fofa -q 'title="Dashboard - Confluence" && body=".org"'
 ./metabigor.py -s zoomeye -q 'app:"tomcat"'
-
 ./metabigor.py -s shodan -q 'port:"3389" os:"Windows"' --debug
 ./metabigor.py -s shodan -Q list_of_query.txt --debug -o rdp.txt  -b --disable_pages
-
 ./metabigor.py -s censys -q '(scada) AND protocols: "502/modbus"' -o something  --debug --proxy socks4://127.0.0.1:9050
 
+[*] Example commands for other mode
+===============
 ./metabigor.py -m exploit -t 'nginx|1.0'  --debug
+./metabigor.py -m exploit -t 'tomcat|7' -d /tmp/ -o tomcat --debug
+
+./metabigor.py -m ip -t example.com -o /tmp/sample
+./metabigor.py -m ip -q 'asn|12334' -o /tmp/sample
+
+./metabigor.py -m git -s code -q 'Osmedeus' -o /tmp/sample -store_content
+./metabigor.py -m git -s commit -q 'Osmedeus' -o /tmp/sample
 
 ```
 
 
 ### Todo
 * Auto switch to query using proxy if get blocked.
-* Predine query to do specific task like subdomain scan, portscan.
+* Predine query to do specific task like subdomain scan, portscan, ~~ip discovery~~.
 * Adding more search engine.
-  * ~~ZoomEye~~
   * Baidu
   * Get free proxy from multiple data sources
 
@@ -132,6 +116,19 @@ Do command below or direct modify config.conf file
 
 Logo from [flaticon](https://www.flaticon.com/free-icon/metabolism_1774457) by [Vitaly Gorbachev
 ](https://www.flaticon.com/authors/vitaly-gorbachev) and ascii logo converted by [picascii](http://picascii.com/)
+
+
+## But Why Metabigor?\*
+* Don't use your API key so you don't have to worry about litmit of API quotation.
+
+* Do query from command line without Premium account.
+
+* Get more result without Premium account. 
+
+* But I have an Premium account why do I need this shit? 
+    * Again Metabigor will not lose your API quotation.
+    * Your query will optimized so you gonna get more result than using it by hand or API key.
+    * Never get duplicate result.
 
 
 ## Disclaimer

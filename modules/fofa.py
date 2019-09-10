@@ -21,7 +21,7 @@ class Fofa():
 
         self.initial()
         self.conclude()
-    
+
     # check if the session still valid
     def check_session(self):
         utils.print_debug(self.options, "Checking session for FoFa")
@@ -105,7 +105,6 @@ class Fofa():
                 result.append(real_data)
 
         utils.just_write(self.output, "\n".join(result) + "\n")
-
 
     # checking if there is many pages or not
     def check_pages(self, soup):

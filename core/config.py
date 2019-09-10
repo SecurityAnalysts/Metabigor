@@ -3,6 +3,7 @@ import sys
 import shutil
 import platform
 import requests
+from pathlib import Path
 import zipfile
 from urllib.parse import urlparse
 from configparser import ConfigParser, ExtendedInterpolation
@@ -114,12 +115,36 @@ def update():
     sys.exit(0)
 
 
-def config(options, args):
+def config(args):
+    options = {}
+    if args.query:
+        options['query'] = args.query
+
+    if args.query_list:
+        options['query_list'] = args.query_list
+
+    # query multi source by send json
+    if args.source_list:
+        options['source_list'] = args.source_list
+
+    # pattern: software | version
+    if args.target:
+        options['target'] = args.target
+
+    if args.target_list:
+        options['target_list'] = args.target_list
+
     # just in case we need real browser
     # install_webdrive()
-    config_path = options['config']
 
-    cwd = str(os.getcwd())
+    metabigor_path = str(Path.home().joinpath('.metabigor'))
+    utils.make_directory(metabigor_path)
+    if args.config_path:
+        config_path = args.config_path
+    else:
+        config_path = os.path.join(metabigor_path, 'config.conf')
+    options['config'] = config_path
+
     # loading config file
     if os.path.isfile(config_path):
         utils.print_info('Loading session from: {0}'.format(config_path))
@@ -127,14 +152,13 @@ def config(options, args):
         config = ConfigParser(interpolation=ExtendedInterpolation())
         config.read(config_path)
     else:
+        cwd = str(os.getcwd())
         utils.print_info('New config file created: {0}'.format(config_path))
         shutil.copyfile(cwd + '/sample-config.conf', config_path)
         config = ConfigParser(interpolation=ExtendedInterpolation())
         config.read(config_path)
 
-    if args.outdir:
-        options['outdir'] = args.outdir
-
+    # some mics config
     options['module'] = args.module if args.module else None
     options['target'] = args.target if args.target else None
     options['debug'] = args.debug if args.debug else None
@@ -143,18 +167,11 @@ def config(options, args):
     options['disable_pages'] = args.disable_pages if args.disable_pages else None
     options['store_content'] = args.store_content if args.store_content else None
 
-    if args.output:
-        options['output'] = args.output
-
-    if args.proxy:
-        options['proxy'] = {
-            'http': args.proxy,
-            'https': args.proxy
-        }
-
+    # if args.output:
+    options['output'] = args.output
+    options['outdir'] = os.path.dirname(args.output)
     # create output directory and raw html directory
-    options['outdir'] = args.outdir
-    utils.make_directory(args.outdir)
+    utils.make_directory(options['outdir'])
     options['raw'] = args.raw
 
     if options['store_content']:
@@ -162,10 +179,17 @@ def config(options, args):
         utils.make_directory(args.raw + "/fofa/")
         utils.make_directory(args.raw + "/shodan/")
         utils.make_directory(args.raw + "/censys/")
+        utils.make_directory(args.raw + "/github/")
 
     # source search engine
     options['source'] = args.source if args.source else None
     options['source_list'] = args.source_list if args.source_list else None
+
+    if args.proxy:
+        options['proxy'] = {
+            'http': args.proxy,
+            'https': args.proxy
+        }
 
     if args.cookies:
         if options['source']:
@@ -227,14 +251,6 @@ def custom_help():
     utils.print_info(
         "Visit this page for complete usage: https://github.com/j3ssie/Metabigor/wiki")
     print('''{1}
-{2}[*]{0} Setup session{1}
-===============
-Do command below or direct modify config.conf file
-./metabigor.py -s shodan --cookies=<content of polito cookie>
-./metabigor.py -s censys --cookies=<content of auth_tkt cookie>
-./metabigor.py -s fofa --cookies=<content of _fofapro_ars_session cookie>
-./metabigor.py -s zoomeye --cookies=<content of Cube-Authorization header>
-
 
 {2}[*]{0} Basic Usage{1}
 ===============
@@ -244,11 +260,9 @@ Do command below or direct modify config.conf file
 
 {2}[*]{0} More Options{1}
 ===============
-  -d OUTDIR, --outdir OUTDIR
-                        Directory output
   -o OUTPUT, --output OUTPUT
                         Output file name
-  --raw RAW             Directory to store raw query
+  --raw RAW             Directory to store raw content
   --proxy PROXY         Proxy for doing request to search engine e.g:
                         http://127.0.0.1:8080
   -b                    Auto brute force the country code
@@ -267,8 +281,16 @@ Do command below or direct modify config.conf file
 ./metabigor.py -s shodan -Q list_of_query.txt --debug -o rdp.txt  -b --disable_pages
 ./metabigor.py -s censys -q '(scada) AND protocols: "502/modbus"' -o something  --debug --proxy socks4://127.0.0.1:9050
 
+{2}[*]{0} Example commands for other mode{1}
+===============
 ./metabigor.py -m exploit -t 'nginx|1.0'  --debug
+./metabigor.py -m exploit -t 'tomcat|7' -d /tmp/ -o tomcat --debug
 
+./metabigor.py -m ip -t example.com -o /tmp/sample
+./metabigor.py -m ip -q 'asn|12334' -o /tmp/sample
+
+./metabigor.py -m git -s code -q 'Osmedeus' -o /tmp/sample -store_content 
+./metabigor.py -m git -s commit -q 'Osmedeus' -o /tmp/sample
             '''.format(G, GR, B))
     sys.exit(0)
 
@@ -281,6 +303,8 @@ def modules_help():
 ===============
   custom         Do query from specific search engine (default mode)
   exploit        Do query from multiple source to get CVE or exploit about app of software
+  git            Simple github recon to get repo, user and org
+  ip             Discovery IP Address of the target
 
 {2}[*]{0} Usage{1}
 ===============
@@ -294,5 +318,10 @@ def modules_help():
 ./metabigor.py -m exploit -t 'nginx|1.0'  --debug
 ./metabigor.py -m exploit -t 'tomcat|7' -d /tmp/ -o tomcat --debug
 
+./metabigor.py -m ip -t example.com -o /tmp/sample
+./metabigor.py -m ip -q 'asn|12334' -o /tmp/sample
+
+./metabigor.py -m git -s code -q 'Osmedeus' -o /tmp/sample -store_content 
+./metabigor.py -m git -s commit -q 'Osmedeus' -o /tmp/sample
             '''.format(G, GR, B))
     sys.exit(0)
