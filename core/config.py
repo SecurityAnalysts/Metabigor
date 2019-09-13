@@ -152,9 +152,10 @@ def config(args):
         config = ConfigParser(interpolation=ExtendedInterpolation())
         config.read(config_path)
     else:
-        cwd = str(os.getcwd())
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sample_config = os.path.join(BASE_DIR, 'sample-config.conf')
         utils.print_info('New config file created: {0}'.format(config_path))
-        shutil.copyfile(cwd + '/sample-config.conf', config_path)
+        shutil.copyfile(sample_config, config_path)
         config = ConfigParser(interpolation=ExtendedInterpolation())
         config.read(config_path)
 

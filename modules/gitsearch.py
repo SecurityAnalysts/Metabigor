@@ -1,6 +1,9 @@
-from github import Github
 from core import sender
 from core import utils
+try:
+    from github import Github
+except:
+    utils.print_bad("You may want to install PyGithub library")
 
 
 class GitSearch():
@@ -19,7 +22,8 @@ class GitSearch():
             utils.print_good(
                 "Github Authentication success")
         else:
-            utils.print_bad("Github Authentication fail, you gonna lose some features")
+            utils.print_bad("Github Authentication fail, you may wanna fill your credential at ~/.metabigor/config.conf")
+            return
         # really do something
         self.gen_output_path()
         self.initial()

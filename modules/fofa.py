@@ -69,8 +69,11 @@ class Fofa():
     def sending(self, url):
         # sending request and return the response
         utils.print_debug(self.options, url)
-
-        r = sender.send_get(self.options, url, self.cookies)
+        # catch error when session timeout
+        try:
+            r = sender.send_get(self.options, url, self.cookies)
+        except:
+            r = False
         if r:
             response = r.text
             if self.options['store_content']:
