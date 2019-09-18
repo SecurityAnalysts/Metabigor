@@ -169,7 +169,8 @@ def config(args):
     options['store_content'] = args.store_content if args.store_content else None
 
     # if args.output:
-    options['output'] = args.output
+    # options['output'] = args.output
+    options['output'] = os.path.basename(args.output)
     options['outdir'] = os.path.dirname(args.output)
     # create output directory and raw html directory
     utils.make_directory(options['outdir'])
